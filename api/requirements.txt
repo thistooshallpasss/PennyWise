@@ -3,3 +3,4 @@ flask-cors==4.0.0
 pdfplumber==0.11.0
 psycopg2-binary==2.9.9
 Werkzeug==3.0.1
+gunicorn==21.2.0
