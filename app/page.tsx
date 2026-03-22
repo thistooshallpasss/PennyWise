@@ -19,14 +19,16 @@ export default function Dashboard() {
   const [availableTags, setAvailableTags] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 'weekly' | 'monthly' | 'yearly' toggle for Pie Charts
   const [pieTimeframe, setPieTimeframe] = useState('weekly');
 
   const fetchData = () => {
     setLoading(true);
-    fetch(`process.env.NEXT_PUBLIC_API_URL/api/analytics/dashboard?month=${selectedMonth}&year=${selectedYear}`)
+    const apiBase = process.env.NEXT_PUBLIC_API_URL;
+
+    fetch(`${apiBase}/api/analytics/dashboard?month=${selectedMonth}&year=${selectedYear}`)
       .then(res => res.json()).then(data => { setData(data); setLoading(false); });
-    fetch("process.env.NEXT_PUBLIC_API_URL/api/tags").then(res => res.json()).then(d => setAvailableTags(d));
+
+    fetch(`${apiBase}/api/tags`).then(res => res.json()).then(d => setAvailableTags(d));
   };
 
   useEffect(() => { fetchData(); }, [selectedMonth, selectedYear]);
@@ -37,10 +39,10 @@ export default function Dashboard() {
     formData.append("file", e.target.files[0]);
     alert("Parsing file... Please wait.");
     try {
-      const res = await fetch("process.env.NEXT_PUBLIC_API_URL/api/upload", { method: "POST", body: formData });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload`, { method: "POST", body: formData });
       const result = await res.json();
       if (res.ok) {
-        setPendingUploads(result.data); // Uploaded data goes straight to Staging Area
+        setPendingUploads(result.data);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else alert("Upload failed: " + result.error);
     } catch (err) { alert("Error parsing file."); }
@@ -48,7 +50,7 @@ export default function Dashboard() {
 
   const handleBulkSubmit = async () => {
     try {
-      const res = await fetch("process.env.NEXT_PUBLIC_API_URL/api/transactions/bulk", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/transactions/bulk`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transactions: pendingUploads })
       });
       if (res.ok) {
@@ -65,13 +67,14 @@ export default function Dashboard() {
     setPendingUploads(updated);
   };
 
-  const handleExport = () => window.open(`process.env.NEXT_PUBLIC_API_URL/api/export`);
+  const handleExport = () => {
+    const start = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
+    const end = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-31`;
+    window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/export?start_date=${start}&end_date=${end}`);
+  };
 
   if (loading && !data) return <div className="min-h-screen flex items-center justify-center font-bold text-xl">Loading PennyWise Insights... 🚀</div>;
-
-  // 👇 YEH NAYI LINE ADD KARO 👇
   if (data?.error) return <div className="min-h-screen flex items-center justify-center font-bold text-xl text-red-500">Backend Error: {data.error}</div>;
-
 
   const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
   const firstDayOffset = new Date(selectedYear, selectedMonth - 1, 1).getDay();
@@ -89,10 +92,10 @@ export default function Dashboard() {
           <h1 className="text-2xl font-extrabold text-gray-900">PennyWise 💰</h1>
         </div>
         <nav className="p-4 space-y-2">
-          <button onClick={() => { setActiveTab('overview'); window.scrollTo(0, 0); }} className={`w-full flex items-center space-x-3 p-3 rounded-lg font-medium transition ${activeTab === 'overview' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'}`}>
+          <button onClick={() => { setActiveTab('overview'); window.scrollTo(0, 0); }} className={`w-full flex items-center space-x-3 p-3 rounded-lg font-medium transition ${activeTab === 'overview' ? 'bg-blue-50 text-blue-700 font-bold' : 'hover:bg-gray-100 text-gray-600'}`}>
             <LayoutDashboard size={20} /> <span>Overview & Calendar</span>
           </button>
-          <button onClick={() => { setActiveTab('analytics'); window.scrollTo(0, 0); }} className={`w-full flex items-center space-x-3 p-3 rounded-lg font-medium transition ${activeTab === 'analytics' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'}`}>
+          <button onClick={() => { setActiveTab('analytics'); window.scrollTo(0, 0); }} className={`w-full flex items-center space-x-3 p-3 rounded-lg font-medium transition ${activeTab === 'analytics' ? 'bg-blue-50 text-blue-700 font-bold' : 'hover:bg-gray-100 text-gray-600'}`}>
             <ChartIcon size={20} /> <span>Deep Analytics</span>
           </button>
         </nav>
@@ -122,13 +125,13 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* 🚀 TOP LEVEL: STAGING AREA (Appears only when file is uploaded) */}
+        {/* 🚀 TOP LEVEL: STAGING AREA */}
         {pendingUploads && (
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-blue-200 w-full animate-in slide-in-from-top-4">
             <div className="flex justify-between items-center mb-6 border-b pb-4">
               <div>
                 <h2 className="text-3xl font-extrabold text-blue-700 flex items-center"><Tag className="mr-3" /> Review & Tag New Transactions</h2>
-                <p className="text-gray-500 mt-1">Transactions are sorted latest first. Empty tags will become 'Undefined'.</p>
+                <p className="text-gray-500 mt-1">Transactions are sorted latest first (newest on top). Empty tags will be 'Undefined'.</p>
               </div>
               <button onClick={handleBulkSubmit} className="flex items-center bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 font-bold shadow-lg transition transform hover:scale-105">
                 <Save size={20} className="mr-2" /> Submit to Database
@@ -157,8 +160,7 @@ export default function Dashboard() {
                         </select>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
+                  </tbody>
               </table>
             </div>
           </div>
@@ -208,12 +210,12 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* FULL 30 POINTS NEWS FEED (NO SCROLLBAR) */}
+            {/* FULL 30 POINTS NEWS FEED (ONE LOOK - NO SCROLL) */}
             <div className="bg-gray-900 text-white p-8 rounded-2xl shadow-lg border border-gray-800">
               <h3 className="text-2xl font-bold flex items-center mb-6 text-yellow-400 border-b border-gray-700 pb-4">
                 <Bell size={24} className="mr-3" /> Financial Insights & News (Top 30)
               </h3>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {data.news.map((n: string, i: number) => (
                   <div key={i} className="flex text-sm bg-gray-800 p-4 rounded-xl border border-gray-700 hover:bg-gray-700 transition">
                     <span className="font-bold text-gray-400 w-8 flex-shrink-0">{i + 1}.</span>
@@ -223,7 +225,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* PREVIEW LIST (GROUPED BY DAY/CATEGORY - LATEST FIRST) */}
+            {/* PREVIEW LIST (LATEST FIRST) */}
             <div className="bg-white p-8 rounded-2xl shadow-sm border">
               <h3 className="text-2xl font-bold mb-6 flex items-center"><ListTodo className="mr-3 text-purple-500" /> Recent Tagged Expenses</h3>
               <div className="overflow-x-auto">
@@ -253,14 +255,12 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* --- VIEW 2: DEEP ANALYTICS (6 PIE CHARTS) --- */}
+        {/* --- VIEW 2: DEEP ANALYTICS --- */}
         {activeTab === 'analytics' && data && (
           <div className="flex flex-col space-y-8 w-full animate-in fade-in duration-300">
             <div className="bg-white p-8 rounded-2xl shadow-sm border">
               <div className="flex justify-between items-center mb-8 border-b pb-4">
                 <h3 className="text-2xl font-bold">🍕 Categorical Breakdown</h3>
-
-                {/* TOGGLE FOR PIE CHARTS */}
                 <div className="flex bg-gray-100 p-1 rounded-lg">
                   {['weekly', 'monthly', 'yearly'].map(t => (
                     <button
@@ -274,14 +274,20 @@ export default function Dashboard() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-
                 {/* Chart 1: AMOUNT vs TAG */}
                 <div className="flex flex-col items-center">
                   <h4 className="font-bold text-lg text-gray-700 mb-4 uppercase tracking-widest">{pieTimeframe} Amount vs Tag</h4>
                   <div className="w-full h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={currentPieData} dataKey="total_amount" nameKey="name" cx="50%" cy="50%" outerRadius={110} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                        <Pie
+                          data={currentPieData}
+                          dataKey="total_amount"
+                          nameKey="name"
+                          cx="50%" cy="50%"
+                          outerRadius={110}
+                          label={({ name, percent }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
+                        >
                           {currentPieData.map((entry: any, index: number) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
                         </Pie>
                         <RechartsTooltip formatter={(value: number) => `₹${value}`} />
@@ -296,7 +302,14 @@ export default function Dashboard() {
                   <div className="w-full h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={currentPieData} dataKey="frequency" nameKey="name" cx="50%" cy="50%" outerRadius={110} label={({ name, value }) => `${name} (${value})`}>
+                        <Pie
+                          data={currentPieData}
+                          dataKey="frequency"
+                          nameKey="name"
+                          cx="50%" cy="50%"
+                          outerRadius={110}
+                          label={({ name, value }) => `${name} (${value})`}
+                        >
                           {currentPieData.map((entry: any, index: number) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
                         </Pie>
                         <RechartsTooltip formatter={(value: number) => `${value} Swipes`} />
@@ -304,7 +317,6 @@ export default function Dashboard() {
                     </ResponsiveContainer>
                   </div>
                 </div>
-
               </div>
             </div>
           </div>
