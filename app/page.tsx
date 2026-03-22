@@ -270,10 +270,17 @@ export default function Dashboard() {
                   <div className="w-full h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={currentPieData} dataKey="total_amount" nameKey="name" cx="50%" cy="50%" outerRadius={110} label={({ name, percent }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}>
+                        <Pie
+                          data={currentPieData}
+                          dataKey="total_amount"
+                          nameKey="name"
+                          cx="50%" cy="50%"
+                          outerRadius={110}
+                          label={({ name, percent }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
+                        >
                           {currentPieData.map((entry: any, index: number) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
                         </Pie>
-                        <RechartsTooltip formatter={(value: number) => `₹${value}`} />
+                        <RechartsTooltip formatter={(value: any) => `₹${value}`} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -283,10 +290,17 @@ export default function Dashboard() {
                   <div className="w-full h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={currentPieData} dataKey="frequency" nameKey="name" cx="50%" cy="50%" outerRadius={110} label={({ name, value }) => `${name} (${value})`}>
+                        <Pie
+                          data={currentPieData}
+                          dataKey="frequency"
+                          nameKey="name"
+                          cx="50%" cy="50%"
+                          outerRadius={110}
+                          label={({ name, value }) => `${name} (${value})`}
+                        >
                           {currentPieData.map((entry: any, index: number) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
                         </Pie>
-                        <RechartsTooltip formatter={(value: number) => `${value} Swipes`} />
+                        <RechartsTooltip formatter={(value: any) => `${value} Swipes`} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
