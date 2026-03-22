@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { Wallet, CreditCard, Download, Upload, LayoutDashboard, LineChart as ChartIcon, Bell, Calendar as CalendarIcon, Save, Tag, ListTodo } from "lucide-react";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#ef4444', '#f59e0b', '#10b981', '#6366f1'];
@@ -23,7 +23,7 @@ export default function Dashboard() {
 
   const fetchData = () => {
     setLoading(true);
-    const apiBase = process.env.NEXT_PUBLIC_API_URL;
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
 
     fetch(`${apiBase}/api/analytics/dashboard?month=${selectedMonth}&year=${selectedYear}`)
       .then(res => res.json()).then(data => { setData(data); setLoading(false); });
@@ -62,7 +62,8 @@ export default function Dashboard() {
   };
 
   const handlePendingTagChange = (index: number, tagId: string) => {
-    const updated = [...pendingUploads!];
+    if (!pendingUploads) return;
+    const updated = [...pendingUploads];
     updated[index].tag_id = tagId;
     setPendingUploads(updated);
   };
@@ -131,7 +132,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-center mb-6 border-b pb-4">
               <div>
                 <h2 className="text-3xl font-extrabold text-blue-700 flex items-center"><Tag className="mr-3" /> Review & Tag New Transactions</h2>
-                <p className="text-gray-500 mt-1">Transactions are sorted latest first (newest on top). Empty tags will be 'Undefined'.</p>
+                <p className="text-gray-500 mt-1">Latest first. Empty tags will be 'Undefined'.</p>
               </div>
               <button onClick={handleBulkSubmit} className="flex items-center bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 font-bold shadow-lg transition transform hover:scale-105">
                 <Save size={20} className="mr-2" /> Submit to Database
@@ -160,7 +161,8 @@ export default function Dashboard() {
                         </select>
                       </td>
                     </tr>
-                  </tbody>
+                  ))}
+                </tbody>
               </table>
             </div>
           </div>
@@ -169,8 +171,6 @@ export default function Dashboard() {
         {/* --- VIEW 1: OVERVIEW --- */}
         {activeTab === 'overview' && data && (
           <div className="flex flex-col space-y-8 w-full animate-in fade-in duration-300">
-
-            {/* HIGHLIGHTS */}
             <div className="grid grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-2xl shadow-sm border flex items-center space-x-6">
                 <div className="p-5 bg-red-100 text-red-600 rounded-2xl"><Wallet size={36} /></div>
@@ -188,7 +188,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* EXPENSE CALENDAR */}
             <div className="bg-white p-8 rounded-2xl shadow-sm border">
               <h3 className="text-2xl font-bold mb-6 flex items-center"><CalendarIcon className="mr-3 text-blue-500" /> Daily Expense Calendar</h3>
               <div className="grid grid-cols-7 gap-3 text-center mb-3 font-bold text-gray-400 text-sm tracking-widest uppercase">
@@ -210,7 +209,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* FULL 30 POINTS NEWS FEED (ONE LOOK - NO SCROLL) */}
             <div className="bg-gray-900 text-white p-8 rounded-2xl shadow-lg border border-gray-800">
               <h3 className="text-2xl font-bold flex items-center mb-6 text-yellow-400 border-b border-gray-700 pb-4">
                 <Bell size={24} className="mr-3" /> Financial Insights & News (Top 30)
@@ -225,7 +223,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* PREVIEW LIST (LATEST FIRST) */}
             <div className="bg-white p-8 rounded-2xl shadow-sm border">
               <h3 className="text-2xl font-bold mb-6 flex items-center"><ListTodo className="mr-3 text-purple-500" /> Recent Tagged Expenses</h3>
               <div className="overflow-x-auto">
@@ -234,7 +231,6 @@ export default function Dashboard() {
                     <tr>
                       <th className="p-4 font-bold text-gray-600">Date</th>
                       <th className="p-4 font-bold text-gray-600">Category</th>
-                      <th className="p-4 font-bold text-gray-600">Transactions Count</th>
                       <th className="p-4 font-bold text-gray-600 text-right">Total Amount</th>
                     </tr>
                   </thead>
@@ -243,7 +239,6 @@ export default function Dashboard() {
                       <tr key={idx} className="border-b hover:bg-gray-50 transition">
                         <td className="p-4 text-sm font-semibold text-gray-700">{item.date}</td>
                         <td className="p-4 text-sm text-gray-600"><span className="bg-gray-200 px-3 py-1 rounded-full">{item.category}</span></td>
-                        <td className="p-4 text-sm font-bold text-gray-500">{item.frequency}</td>
                         <td className="p-4 font-extrabold text-red-500 text-right">₹{item.amount}</td>
                       </tr>
                     ))}
@@ -251,7 +246,6 @@ export default function Dashboard() {
                 </table>
               </div>
             </div>
-
           </div>
         )}
 
@@ -263,10 +257,7 @@ export default function Dashboard() {
                 <h3 className="text-2xl font-bold">🍕 Categorical Breakdown</h3>
                 <div className="flex bg-gray-100 p-1 rounded-lg">
                   {['weekly', 'monthly', 'yearly'].map(t => (
-                    <button
-                      key={t} onClick={() => setPieTimeframe(t)}
-                      className={`px-6 py-2 rounded-md font-bold capitalize transition ${pieTimeframe === t ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
+                    <button key={t} onClick={() => setPieTimeframe(t)} className={`px-6 py-2 rounded-md font-bold capitalize transition ${pieTimeframe === t ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
                       {t}
                     </button>
                   ))}
@@ -274,20 +265,12 @@ export default function Dashboard() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                {/* Chart 1: AMOUNT vs TAG */}
                 <div className="flex flex-col items-center">
                   <h4 className="font-bold text-lg text-gray-700 mb-4 uppercase tracking-widest">{pieTimeframe} Amount vs Tag</h4>
                   <div className="w-full h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie
-                          data={currentPieData}
-                          dataKey="total_amount"
-                          nameKey="name"
-                          cx="50%" cy="50%"
-                          outerRadius={110}
-                          label={({ name, percent }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
-                        >
+                        <Pie data={currentPieData} dataKey="total_amount" nameKey="name" cx="50%" cy="50%" outerRadius={110} label={({ name, percent }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}>
                           {currentPieData.map((entry: any, index: number) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
                         </Pie>
                         <RechartsTooltip formatter={(value: number) => `₹${value}`} />
@@ -295,21 +278,12 @@ export default function Dashboard() {
                     </ResponsiveContainer>
                   </div>
                 </div>
-
-                {/* Chart 2: FREQUENCY vs TAG */}
                 <div className="flex flex-col items-center">
                   <h4 className="font-bold text-lg text-gray-700 mb-4 uppercase tracking-widest">{pieTimeframe} Frequency vs Tag</h4>
                   <div className="w-full h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie
-                          data={currentPieData}
-                          dataKey="frequency"
-                          nameKey="name"
-                          cx="50%" cy="50%"
-                          outerRadius={110}
-                          label={({ name, value }) => `${name} (${value})`}
-                        >
+                        <Pie data={currentPieData} dataKey="frequency" nameKey="name" cx="50%" cy="50%" outerRadius={110} label={({ name, value }) => `${name} (${value})`}>
                           {currentPieData.map((entry: any, index: number) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
                         </Pie>
                         <RechartsTooltip formatter={(value: number) => `${value} Swipes`} />
